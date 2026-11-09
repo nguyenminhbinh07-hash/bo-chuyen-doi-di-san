@@ -52,7 +52,7 @@ export const AboutScreen: React.FC = () => {
                   Nguyễn Minh Bình
                 </h1>
                 <span className="bg-amber-400 text-stone-950 text-xs px-2.5 py-0.5 rounded-full font-bold">
-                  Phó nhóm 2
+                  Nhóm 2
                 </span>
                 <span className="bg-white/10 text-amber-200 border border-white/15 text-xs px-2.5 py-0.5 rounded-full font-mono">
                   Mã SV: TH04121
@@ -87,7 +87,7 @@ export const AboutScreen: React.FC = () => {
           <div className="bg-amber-950/40 border border-amber-500/30 rounded-2xl p-4 text-xs sm:text-sm text-amber-100 flex items-start gap-3">
             <Quote className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <p className="italic leading-relaxed">
-              “Sản phẩm thực tập của Nguyễn Minh Bình - Mã sinh viên: TH04121 - Phó nhóm 2. Chương trình Thực tập sinh Đợt 15 FPT Polytechnic và IMTA TECH. Dự án xã hội phi lợi nhuận.”
+              “Sản phẩm thực tập của Nguyễn Minh Bình - Mã sinh viên: TH04121 - Nhóm 2. Chương trình Thực tập sinh Đợt 15 FPT Polytechnic và IMTA TECH. Dự án xã hội phi lợi nhuận.”
             </p>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { HeritageRecord, MediaType } from '../types/heritage';
+import { GoogleGenAI } from '@google/genai';
 import { SAMPLE_RAW_DATA, parseRawHeritageHeuristically } from '../utils/converter';
 import {
   Sparkles,
@@ -72,47 +73,75 @@ export const ConverterScreen: React.FC<ConverterScreenProps> = ({
     setSavedSuccess(false);
 
     try {
-      const response = await fetch('/api/gemini/convert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rawText: inputText }),
-      });
+      const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (typeof window !== 'undefined' ? localStorage.getItem('user_gemini_api_key') : '') || '';
 
-      if (!response.ok) {
-        throw new Error('Máy chủ phản hồi lỗi khi chuyển đổi.');
+      if (apiKey) {
+        try {
+          const ai = new GoogleGenAI({ apiKey });
+          const systemPrompt = `Bạn là chuyên gia số hóa di sản văn hóa phi vật thể Việt Nam. Nhiệm vụ của bạn là trích xuất văn bản thô thành một đối tượng JSON chuẩn xác đủ 12 trường thông tin:
+{
+  "ten_tu_lieu": string,
+  "loai_tu_lieu": "Ảnh" | "Ghi âm" | "Ghi hình" | "Văn bản",
+  "noi_dung_mo_ta_ngan": string,
+  "di_san_lien_quan": string,
+  "dia_danh_hien_nay": string,
+  "dia_danh_thoi_diem_tu_lieu": string,
+  "thoi_diem_thu_thap": string,
+  "nguoi_thu_thap": string,
+  "nguoi_cung_cap_va_cong_dong": string,
+  "pham_vi_su_dung": string,
+  "is_consented": boolean,
+  "nguon_goc_tu_lieu": string,
+  "chu_giai_tu_ngu_ban_dia": string
+}
+Chỉ trả về JSON thuần túy, không bọc markdown.`;
+
+          const response = await ai.models.generateContent({
+            model: 'gemini-3.8-flash',
+            contents: `Văn bản thô:\n${inputText}`,
+            config: {
+              systemInstruction: systemPrompt,
+              responseMimeType: 'application/json',
+            },
+          });
+
+          const text = response.text || '{}';
+          const aiData = JSON.parse(text);
+          const validRecord: HeritageRecord = {
+            id: `DS-AI-${Date.now().toString().slice(-4)}`,
+            ten_tu_lieu: aiData.ten_tu_lieu || 'Di sản văn hóa phi vật thể',
+            loai_tu_lieu: (['Ảnh', 'Ghi âm', 'Ghi hình', 'Văn bản'].includes(aiData.loai_tu_lieu)
+              ? aiData.loai_tu_lieu
+              : 'Văn bản') as MediaType,
+            noi_dung_mo_ta_ngan: aiData.noi_dung_mo_ta_ngan || '',
+            di_san_lien_quan: aiData.di_san_lien_quan || '',
+            dia_danh_hien_nay: aiData.dia_danh_hien_nay || '',
+            dia_danh_thoi_diem_tu_lieu: aiData.dia_danh_thoi_diem_tu_lieu || '',
+            thoi_diem_thu_thap: aiData.thoi_diem_thu_thap || '',
+            nguoi_thu_thap: aiData.nguoi_thu_thap || '',
+            nguoi_cung_cap_va_cong_dong: aiData.nguoi_cung_cap_va_cong_dong || '',
+            pham_vi_su_dung: aiData.pham_vi_su_dung || '',
+            is_consented: typeof aiData.is_consented === 'boolean' ? aiData.is_consented : true,
+            nguon_goc_tu_lieu: aiData.nguon_goc_tu_lieu || '',
+            chu_giai_tu_ngu_ban_dia: aiData.chu_giai_tu_ngu_ban_dia || '',
+          };
+          setConvertedRecord(validRecord);
+          return;
+        } catch (apiErr) {
+          console.warn('Lỗi gọi Gemini SDK phía client, sử dụng bộ trích xuất heuristic:', apiErr);
+        }
       }
 
-      const resData = await response.json();
-      if (resData.success && resData.data) {
-        const aiData = resData.data;
-        const validRecord: HeritageRecord = {
-          id: `DS-AI-${Date.now().toString().slice(-4)}`,
-          ten_tu_lieu: aiData.ten_tu_lieu || 'Di sản văn hóa phi vật thể',
-          loai_tu_lieu: (['Ảnh', 'Ghi âm', 'Ghi hình', 'Văn bản'].includes(aiData.loai_tu_lieu)
-            ? aiData.loai_tu_lieu
-            : 'Văn bản') as MediaType,
-          noi_dung_mo_ta_ngan: aiData.noi_dung_mo_ta_ngan || '',
-          di_san_lien_quan: aiData.di_san_lien_quan || '',
-          dia_danh_hien_nay: aiData.dia_danh_hien_nay || '',
-          dia_danh_thoi_diem_tu_lieu: aiData.dia_danh_thoi_diem_tu_lieu || '',
-          thoi_diem_thu_thap: aiData.thoi_diem_thu_thap || '',
-          nguoi_thu_thap: aiData.nguoi_thu_thap || '',
-          nguoi_cung_cap_va_cong_dong: aiData.nguoi_cung_cap_va_cong_dong || '',
-          pham_vi_su_dung: aiData.pham_vi_su_dung || '',
-          is_consented: typeof aiData.is_consented === 'boolean' ? aiData.is_consented : true,
-          nguon_goc_tu_lieu: aiData.nguon_goc_tu_lieu || '',
-          chu_giai_tu_ngu_ban_dia: aiData.chu_giai_tu_ngu_ban_dia || '',
-        };
-        setConvertedRecord(validRecord);
-      } else {
-        throw new Error('Dữ liệu trả về không đúng định dạng JSON.');
-      }
-    } catch (err: any) {
-      console.warn('AI conversion failed, using robust heuristic fallback:', err);
-      // Heuristic fallback
+      // Heuristic fallback if no API key or network error
       const fallback = parseRawHeritageHeuristically(inputText);
       setConvertedRecord(fallback);
-      setErrorMessage('Chuyển sang chế độ trích xuất tự động qua Heuristic Parser thành công.');
+      if (!apiKey) {
+        setErrorMessage('Đã trích xuất chuẩn 12 trường qua Heuristic Parser (chưa cấu hình API Key).');
+      }
+    } catch (err: any) {
+      console.warn('Conversion error:', err);
+      const fallback = parseRawHeritageHeuristically(inputText);
+      setConvertedRecord(fallback);
     } finally {
       setIsConverting(false);
     }

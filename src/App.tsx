@@ -15,36 +15,59 @@ import { AboutScreen } from './components/AboutScreen';
 import { ModalDetail } from './components/ModalDetail';
 import { Sparkles, Database, Bot, Layers, Info } from 'lucide-react';
 
+import defaultHeritageData from '../data/disan.json';
+
 export default function App() {
   const [currentTab, setCurrentTab] = useState<ScreenTab>('ai-qa');
-  const [records, setRecords] = useState<HeritageRecord[]>([]);
+  const [records, setRecords] = useState<HeritageRecord[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('disan_local_records');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {
+        console.warn('Could not read cached records:', e);
+      }
+    }
+    return defaultHeritageData as HeritageRecord[];
+  });
   const [selectedRecord, setSelectedRecord] = useState<HeritageRecord | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  // Fetch initial heritage records from backend /api/heritage
+  // Fetch updated records from backend if available
   useEffect(() => {
     const fetchHeritageData = async () => {
       try {
         const res = await fetch('/api/heritage');
         if (res.ok) {
           const json = await res.json();
-          if (json.data && Array.isArray(json.data)) {
+          if (json.data && Array.isArray(json.data) && json.data.length > 0) {
             setRecords(json.data);
           }
         }
-      } catch (err) {
-        console.error('Failed to load heritage data from backend, will retry:', err);
-      } finally {
-        setLoading(false);
+      } catch {
+        // On static hosting like Vercel, defaultHeritageData is already active
       }
     };
 
     fetchHeritageData();
   }, []);
 
-  // Save converted record into records list and sync with backend
+  // Save converted record into records list and sync with backend / localStorage
   const handleSaveToLibrary = async (newRecord: HeritageRecord) => {
-    setRecords((prev) => [newRecord, ...prev]);
+    setRecords((prev) => {
+      const updated = [newRecord, ...prev];
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('disan_local_records', JSON.stringify(updated));
+        } catch {
+          // ignore storage error
+        }
+      }
+      return updated;
+    });
 
     try {
       await fetch('/api/heritage', {
@@ -52,8 +75,8 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newRecord),
       });
-    } catch (err) {
-      console.warn('Could not sync newly added record to backend:', err);
+    } catch {
+      // Graceful fallback on static hosting
     }
   };
 

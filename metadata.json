@@ -1,0 +1,6 @@
+{
+  "name": "Di sản Phi vật thể Việt Nam - Chuẩn hóa I03",
+  "description": "Bộ chuyển đổi dữ liệu di sản sang chuẩn mô tả chung (Mã I03) - Quản lý, chuẩn hóa 12 trường thông tin di sản phi vật thể 8 vùng văn hóa Việt Nam và trợ lý tra cứu AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

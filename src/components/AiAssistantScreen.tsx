@@ -400,9 +400,6 @@ ${groundTruthContext}`;
             <h1 className="text-2xl sm:text-3xl font-bold font-heritage text-stone-900 tracking-tight">
               Hỏi đáp Di sản Văn hóa Phi vật thể 8 Vùng miền
             </h1>
-            <p className="text-stone-600 text-xs sm:text-sm mt-1">
-              Kết nối trực tiếp Google Gemini API qua Client SDK. Trả lời chính xác dựa trên tập dữ liệu chuẩn hóa <strong>disan.json</strong>, dẫn xuất đủ 4 yếu tố cốt lõi.
-            </p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0 self-start">

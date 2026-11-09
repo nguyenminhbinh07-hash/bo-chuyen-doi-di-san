@@ -18,7 +18,7 @@ import { Sparkles, Database, Bot, Layers, Info } from 'lucide-react';
 import defaultHeritageData from '../data/disan.json';
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState<ScreenTab>('ai-qa');
+  const [currentTab, setCurrentTab] = useState<ScreenTab>('converter');
   const [records, setRecords] = useState<HeritageRecord[]>(() => {
     if (typeof window !== 'undefined') {
       try {
